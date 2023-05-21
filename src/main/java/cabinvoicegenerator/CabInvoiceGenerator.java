@@ -6,40 +6,51 @@ import java.util.List;
 import java.util.Map;
 
 public class CabInvoiceGenerator {
-     static final double COST_PER_KM = 10.0;
-     static final double COST_PER_MINUTE = 1.0;
-     static final double MINIMUM_FARE = 5.0;
+    static final double NORMAL_COST_PER_KM = 10.0;
+    static final double NORMAL_COST_PER_MINUTE = 1.0;
+    static final double NORMAL_MINIMUM_FARE = 5.0;
+    static final double PREMIUM_COST_PER_KM = 15.0;
+    static final double PREMIUM_COST_PER_MINUTE = 2.0;
+    static final double PREMIUM_MINIMUM_FARE = 20.0;
 
-    public double calculateFare(double distance, int minutes) {
-        double totalFare = distance * COST_PER_KM + minutes * COST_PER_MINUTE;
-        return Math.max(totalFare, MINIMUM_FARE);
+    public double calculateFare(double distance, int minutes, RideType rideType) {
+        double costPerKm = rideType == RideType.NORMAL ? NORMAL_COST_PER_KM : PREMIUM_COST_PER_KM;
+        double costPerMinute = rideType == RideType.NORMAL ? NORMAL_COST_PER_MINUTE : PREMIUM_COST_PER_MINUTE;
+        double minimumFare = rideType == RideType.NORMAL ? NORMAL_MINIMUM_FARE : PREMIUM_MINIMUM_FARE;
+
+        double totalFare = distance * costPerKm + minutes * costPerMinute;
+        return Math.max(totalFare, minimumFare);
     }
 
-    public InvoiceSummary calculateInvoiceSummary(List<Ride> rides) {
+    public InvoiceSummary calculateInvoiceSummary(List<Ride> rides, RideType rideType) {
         double totalFare = 0.0;
         int totalRides = rides.size();
 
         for (Ride ride : rides) {
-            totalFare += calculateFare(ride.getDistance(), ride.getMinutes());
+            totalFare += calculateFare(ride.getDistance(), ride.getMinutes(), rideType);
         }
 
         double averageFare = totalFare / totalRides;
         return new InvoiceSummary(totalRides, totalFare, averageFare);
     }
-    public InvoiceSummary getInvoiceByUserId(int userId, RideRepository rideRepository) {
+
+    public InvoiceSummary getInvoiceByUserId(int userId, RideRepository rideRepository, RideType rideType) {
         List<Ride> rides = rideRepository.getRidesByUserId(userId);
-        return calculateInvoiceSummary(rides);
+        return calculateInvoiceSummary(rides, rideType);
     }
 
     public static void main(String[] args) {
+        // Example usage
         RideRepository rideRepository = new RideRepository();
-        rideRepository.addRides(1, new Ride(10.5, 20));  // User 1 - Ride 1
-        rideRepository.addRides(1, new Ride(5.0, 15));   // User 1 - Ride 2
-        rideRepository.addRides(2, new Ride(7.0, 18));   // User 2 - Ride 1
+        rideRepository.addRides(1, new Ride(10.5, 20, RideType.NORMAL));     // User 1 - Normal Ride 1
+        rideRepository.addRides(1, new Ride(5.0, 15, RideType.NORMAL));      // User 1 - Normal Ride 2
+        rideRepository.addRides(2, new Ride(7.0, 18, RideType.PREMIUM));     // User 2 - Premium Ride 1
+        rideRepository.addRides(2, new Ride(3.5, 10, RideType.PREMIUM));     // User 2 - Premium Ride 2
 
         CabInvoiceGenerator invoiceGenerator = new CabInvoiceGenerator();
         int userId = 1;
-        InvoiceSummary invoiceSummary = invoiceGenerator.getInvoiceByUserId(userId, rideRepository);
+        RideType rideType = RideType.NORMAL;
+        InvoiceSummary invoiceSummary = invoiceGenerator.getInvoiceByUserId(userId, rideRepository, rideType);
 
         System.out.println("Total Number of Rides: " + invoiceSummary.getTotalRides());
         System.out.println("Total Fare: $" + invoiceSummary.getTotalFare());
@@ -47,13 +58,19 @@ public class CabInvoiceGenerator {
     }
 }
 
-class Ride {
-     double distance;
-     int minutes;
+enum RideType {
+    NORMAL,
+    PREMIUM
+}
 
-    public Ride(double distance, int minutes) {
+class Ride {
+    double distance;
+    int minutes;
+    RideType rideType;
+    public Ride(double distance, int minutes, RideType rideType) {
         this.distance = distance;
         this.minutes = minutes;
+        this.rideType = rideType;
     }
 
     public double getDistance() {
@@ -63,7 +80,12 @@ class Ride {
     public int getMinutes() {
         return minutes;
     }
+
+    public RideType getRideType() {
+        return rideType;
+    }
 }
+
 class InvoiceSummary {
     int totalRides;
     double totalFare;
@@ -87,9 +109,9 @@ class InvoiceSummary {
         return averageFare;
     }
 }
+
 class RideRepository {
     final List<Ride> rideList;
-    // Map to store rides for each user
     final Map<Integer, List<Ride>> userRides;
 
     public RideRepository() {
