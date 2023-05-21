@@ -12,24 +12,33 @@ public class CabInvoiceGenerator {
         double totalFare = distance * COST_PER_KM + minutes * COST_PER_MINUTE;
         return Math.max(totalFare, MINIMUM_FARE);
     }
-    public double calculateTotalFare(List<Ride> rides){
+
+    public InvoiceSummary calculateInvoiceSummary(List<Ride> rides) {
         double totalFare = 0.0;
+        int totalRides = rides.size();
+
         for (Ride ride : rides) {
             totalFare += calculateFare(ride.getDistance(), ride.getMinutes());
         }
-        return totalFare;
+
+        double averageFare = totalFare / totalRides;
+        return new InvoiceSummary(totalRides, totalFare, averageFare);
     }
+
     public static void main(String[] args) {
         List<Ride> rides = new ArrayList<>();
         rides.add(new Ride(10.5, 20));  // Ride 1
         rides.add(new Ride(5.0, 15));   // Ride 2
 
         CabInvoiceGenerator invoiceGenerator = new CabInvoiceGenerator();
-        double totalFare = invoiceGenerator.calculateTotalFare(rides);
+        InvoiceSummary invoiceSummary = invoiceGenerator.calculateInvoiceSummary(rides);
 
-        System.out.println("Aggregate Total Fare: $" + totalFare);
+        System.out.println("Total Number of Rides: " + invoiceSummary.getTotalRides());
+        System.out.println("Total Fare: $" + invoiceSummary.getTotalFare());
+        System.out.println("Average Fare per Ride: $" + invoiceSummary.getAverageFare());
     }
 }
+
 class Ride {
     private double distance;
     private int minutes;
@@ -45,5 +54,28 @@ class Ride {
 
     public int getMinutes() {
         return minutes;
+    }
+}
+class InvoiceSummary {
+    private int totalRides;
+    private double totalFare;
+    private double averageFare;
+
+    public InvoiceSummary(int totalRides, double totalFare, double averageFare) {
+        this.totalRides = totalRides;
+        this.totalFare = totalFare;
+        this.averageFare = averageFare;
+    }
+
+    public int getTotalRides() {
+        return totalRides;
+    }
+
+    public double getTotalFare() {
+        return totalFare;
+    }
+
+    public double getAverageFare() {
+        return averageFare;
     }
 }
